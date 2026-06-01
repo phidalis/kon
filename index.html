@@ -107,6 +107,8 @@
       padding:0; gap:0;
       border-top:1px solid var(--border); background:var(--bg2);
       scrollbar-width:none; flex-shrink:0;
+      -webkit-overflow-scrolling:touch; touch-action:pan-x;
+      scroll-snap-type:x proximity;
     }
     .nav-tabs::-webkit-scrollbar { display:none; }
     .nav-tab {
@@ -114,7 +116,7 @@
       padding:8px 12px; border-bottom:2.5px solid transparent;
       color:var(--text3); font-size:9px; font-weight:700; cursor:pointer;
       white-space:nowrap; transition:all 0.2s; flex:1; min-width:50px;
-      text-transform:uppercase; letter-spacing:0.3px;
+      text-transform:uppercase; letter-spacing:0.3px; scroll-snap-align:start;
     }
     .nav-tab.active { color:var(--orange); border-bottom-color:var(--orange); }
     .nav-tab-icon { font-size:15px; }
@@ -532,6 +534,66 @@
     .menu-sub { font-size:11px; color:var(--text3); margin-top:1px; }
     .menu-arrow { color:var(--text3); font-size:18px; }
 
+    /* ── COUNTRY SELECTOR ── */
+    .country-select-wrap {
+      display: flex; gap: 0; margin-bottom: 16px; position: relative;
+    }
+    .country-flag-btn {
+      display: flex; align-items: center; gap: 6px; padding: 0 12px;
+      background: rgba(255,255,255,0.06); border: 1.5px solid rgba(255,255,255,0.12);
+      border-right: none; border-radius: 10px 0 0 10px;
+      color: white; cursor: pointer; font-size: 14px; white-space: nowrap;
+      height: 46px; transition: border-color 0.2s; flex-shrink: 0;
+    }
+    .country-flag-btn:focus { border-color: var(--orange); outline: none; }
+    .country-code-label { font-size: 12px; font-weight: 800; color: var(--text2); }
+    .phone-with-code {
+      flex: 1; padding: 12px 14px; height: 46px;
+      background: rgba(255,255,255,0.06); border: 1.5px solid rgba(255,255,255,0.12);
+      border-radius: 0 10px 10px 0; color: white; font-size: 15px;
+      outline: none; transition: border-color 0.2s; width: 0;
+    }
+    .phone-with-code:focus { border-color: var(--orange); }
+    .phone-with-code::placeholder { color: var(--text3); }
+    .country-dropdown {
+      position: absolute; top: 52px; left: 0; z-index: 500;
+      background: var(--bg2); border: 1px solid var(--border2);
+      border-radius: 14px; width: 260px; max-height: 280px;
+      overflow-y: auto; box-shadow: 0 16px 48px rgba(0,0,0,0.7);
+      display: none; animation: pop 0.15s ease;
+    }
+    .country-dropdown.open { display: block; }
+    .country-search-inp {
+      width: 100%; padding: 10px 14px; background: rgba(255,255,255,0.06);
+      border: none; border-bottom: 1px solid var(--border); color: white;
+      font-size: 13px; outline: none; border-radius: 14px 14px 0 0;
+    }
+    .country-opt {
+      display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+      cursor: pointer; transition: background 0.15s; font-size: 13px;
+    }
+    .country-opt:hover { background: rgba(255,255,255,0.06); }
+    .country-opt.selected { background: rgba(37,99,235,0.12); color: var(--orange); }
+    .country-opt-flag { font-size: 18px; flex-shrink: 0; }
+    .country-opt-name { flex: 1; font-weight: 600; }
+    .country-opt-code { font-size: 11px; color: var(--text3); font-weight: 700; }
+
+    /* ── CURRENCY SWITCHER ── */
+    .currency-switcher-wrap {
+      display: flex; align-items: center; gap: 8px; padding: 6px 14px;
+      background: var(--bg2); border-bottom: 1px solid var(--border);
+      font-size: 12px; color: var(--text2); overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .currency-switcher-wrap::-webkit-scrollbar { display: none; }
+    .currency-pill {
+      display: flex; align-items: center; gap: 5px; padding: 5px 11px;
+      border-radius: 20px; border: 1.5px solid var(--border2);
+      background: var(--card); cursor: pointer; white-space: nowrap;
+      font-size: 11px; font-weight: 800; transition: all 0.2s; flex-shrink: 0;
+    }
+    .currency-pill.active { border-color: var(--orange); background: rgba(37,99,235,0.12); color: var(--orange); }
+
     /* ── DEPOSIT MODAL ── */
     .modal-overlay {
       position:fixed; inset:0; z-index:200;
@@ -581,14 +643,14 @@
       <div class="header-actions" id="headerActionsLoggedIn" style="display:none">
         <div class="balance-pill">
           <div class="live-dot" style="background:var(--green)"></div>
-          <span class="balance-label">KES</span>
+          <span class="balance-label" id="hdrCurrLabel">KES</span>
           <span class="balance-val" id="hdrBalance">500</span>
         </div>
         <button class="btn-signup" onclick="openDepositModal()">DEPOSIT</button>
       </div>
     </div>
     <!-- NAV TABS -->
-    <div class="nav-tabs" id="mainNavTabs">
+    <div class="nav-tabs" id="mainNavTabs" style="overflow-x:auto;overflow-y:hidden;scrollbar-width:none;">
       <div class="nav-tab active" onclick="switchPage('home',this)"><div class="nav-tab-icon">🏠</div>Home</div>
       <div class="nav-tab" onclick="switchPage('live',this)"><div class="nav-tab-icon">🔴</div>Live</div>
       <div class="nav-tab" onclick="switchPage('sports',this)"><div class="nav-tab-icon">⚽</div>Sports</div>
@@ -596,6 +658,10 @@
       <div class="nav-tab" onclick="switchPage('virtual',this)"><div class="nav-tab-icon">🎮</div>Virtuals</div>
       <div class="nav-tab" onclick="switchPage('aviator',this)"><div class="nav-tab-icon">✈️</div>Aviator</div>
       <div class="nav-tab" onclick="switchPage('jackpot',this)"><div class="nav-tab-icon">🏆</div>Jackpot</div>
+    </div>
+    <!-- CURRENCY SWITCHER -->
+    <div class="currency-switcher-wrap" id="currencySwitcherBar">
+      <span style="font-size:10px;font-weight:800;color:var(--text3);white-space:nowrap;">💱 Currency:</span>
     </div>
   </header>
 
@@ -961,10 +1027,10 @@
   <div id="fbBetslipEmpty" style="text-align:center;color:rgba(255,255,255,0.3);padding:24px 0;font-size:13px;">Betslip is empty.<br><span style="font-size:11px;opacity:0.7;">Tap any odds button to add a pick.</span></div>
   <div id="fbBetslipStakeArea" style="display:none;margin-top:4px;">
     <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;">
-      <button onclick="fbQuickStake(50)"  style="flex:1;padding:9px 4px;border-radius:8px;font-size:11px;background:#FFD700;border:none;color:#1a1a1a;font-weight:900;cursor:pointer;min-width:55px;">KES 50</button>
-      <button onclick="fbQuickStake(100)" style="flex:1;padding:9px 4px;border-radius:8px;font-size:11px;background:#FFD700;border:none;color:#1a1a1a;font-weight:900;cursor:pointer;min-width:55px;">KES 100</button>
-      <button onclick="fbQuickStake(200)" style="flex:1;padding:9px 4px;border-radius:8px;font-size:11px;background:#FFD700;border:none;color:#1a1a1a;font-weight:900;cursor:pointer;min-width:55px;">KES 200</button>
-      <button onclick="fbQuickStake(500)" style="flex:1;padding:9px 4px;border-radius:8px;font-size:11px;background:#FFD700;border:none;color:#1a1a1a;font-weight:900;cursor:pointer;min-width:55px;">KES 500</button>
+      <button onclick="fbQuickStake(50)"  id="fbQS50"  style="flex:1;padding:9px 4px;border-radius:8px;font-size:11px;background:#FFD700;border:none;color:#1a1a1a;font-weight:900;cursor:pointer;min-width:55px;">KES 50</button>
+      <button onclick="fbQuickStake(100)" id="fbQS100" style="flex:1;padding:9px 4px;border-radius:8px;font-size:11px;background:#FFD700;border:none;color:#1a1a1a;font-weight:900;cursor:pointer;min-width:55px;">KES 100</button>
+      <button onclick="fbQuickStake(200)" id="fbQS200" style="flex:1;padding:9px 4px;border-radius:8px;font-size:11px;background:#FFD700;border:none;color:#1a1a1a;font-weight:900;cursor:pointer;min-width:55px;">KES 200</button>
+      <button onclick="fbQuickStake(500)" id="fbQS500" style="flex:1;padding:9px 4px;border-radius:8px;font-size:11px;background:#FFD700;border:none;color:#1a1a1a;font-weight:900;cursor:pointer;min-width:55px;">KES 500</button>
     </div>
     <input type="number" id="fbBetStake" placeholder="Enter stake (KES)" min="10" oninput="fbUpdateCalc()" style="width:100%;padding:12px;background:rgba(255,255,255,0.07);border:1.5px solid rgba(255,215,0,0.35);border-radius:10px;color:white;font-size:16px;font-weight:700;margin-bottom:10px;outline:none;box-sizing:border-box;">
     <div style="display:flex;justify-content:space-between;margin-bottom:14px;font-size:12px;color:rgba(255,255,255,0.5);">
@@ -983,8 +1049,19 @@
     <div class="auth-sub">Sign in to your Sporty_GamesKE account</div>
     <div class="err-box" id="loginErr"></div>
     <div class="field">
-      <label>Phone Number</label>
-      <input class="inp" id="liPhone" type="tel" inputmode="numeric" placeholder="07XX XXX XXX">
+      <label>Country & Phone Number</label>
+      <div class="country-select-wrap" id="liCountryWrap">
+        <button class="country-flag-btn" type="button" onclick="toggleCountryDropdown('li')" id="liCountryBtn">
+          <span id="liCountryFlag">🇰🇪</span>
+          <span class="country-code-label" id="liCountryCode">KE</span>
+          <span style="font-size:9px;color:var(--text3);">▼</span>
+        </button>
+        <div class="country-dropdown" id="liCountryDropdown">
+          <input class="country-search-inp" type="text" placeholder="Search country…" oninput="filterCountryOpts('li',this.value)">
+          <div id="liCountryList"></div>
+        </div>
+        <input class="phone-with-code" id="liPhone" type="tel" inputmode="numeric" placeholder="07XX XXX XXX">
+      </div>
     </div>
     <div class="field">
       <label>Password</label>
@@ -1007,10 +1084,10 @@
   <div id="betslipEmpty" style="text-align:center;color:rgba(255,255,255,0.3);padding:20px 0;font-size:13px;font-family:Nunito,sans-serif;">Your betslip is empty.<br>Tap any odds to add a bet.</div>
   <div id="betslipStakeArea" style="display:none;">
     <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
-      <button onclick="quickStake(50)"  style="flex:1;padding:9px;border-radius:8px;font-size:11px;background:#FFD700;border:none;color:#1a1a1a;font-weight:900;cursor:pointer;">KES 50</button>
-      <button onclick="quickStake(100)" style="flex:1;padding:9px;border-radius:8px;font-size:11px;background:#FFD700;border:none;color:#1a1a1a;font-weight:900;cursor:pointer;">KES 100</button>
-      <button onclick="quickStake(200)" style="flex:1;padding:9px;border-radius:8px;font-size:11px;background:#FFD700;border:none;color:#1a1a1a;font-weight:900;cursor:pointer;">KES 200</button>
-      <button onclick="quickStake(500)" style="flex:1;padding:9px;border-radius:8px;font-size:11px;background:#FFD700;border:none;color:#1a1a1a;font-weight:900;cursor:pointer;">KES 500</button>
+      <button onclick="quickStake(50)"  id="bsQS50"  style="flex:1;padding:9px;border-radius:8px;font-size:11px;background:#FFD700;border:none;color:#1a1a1a;font-weight:900;cursor:pointer;">KES 50</button>
+      <button onclick="quickStake(100)" id="bsQS100" style="flex:1;padding:9px;border-radius:8px;font-size:11px;background:#FFD700;border:none;color:#1a1a1a;font-weight:900;cursor:pointer;">KES 100</button>
+      <button onclick="quickStake(200)" id="bsQS200" style="flex:1;padding:9px;border-radius:8px;font-size:11px;background:#FFD700;border:none;color:#1a1a1a;font-weight:900;cursor:pointer;">KES 200</button>
+      <button onclick="quickStake(500)" id="bsQS500" style="flex:1;padding:9px;border-radius:8px;font-size:11px;background:#FFD700;border:none;color:#1a1a1a;font-weight:900;cursor:pointer;">KES 500</button>
     </div>
     <input type="number" id="betStakeInput" placeholder="Enter stake (KES)" min="10" oninput="updateStakeCalc()" style="width:100%;padding:12px;background:rgba(255,255,255,0.07);border:1.5px solid rgba(255,215,0,0.3);border-radius:10px;color:white;font-size:16px;font-weight:700;margin-bottom:10px;outline:none;box-sizing:border-box;">
     <div style="display:flex;justify-content:space-between;margin-bottom:12px;font-size:12px;color:rgba(255,255,255,0.5);font-family:Nunito,sans-serif;">
@@ -1037,8 +1114,19 @@
       <input class="inp" id="suName" type="text" placeholder="Your full name">
     </div>
     <div class="field">
-      <label>Phone Number (M-Pesa)</label>
-      <input class="inp" id="suPhone" type="tel" inputmode="numeric" placeholder="07XX XXX XXX">
+      <label>Country & Phone Number</label>
+      <div class="country-select-wrap" id="suCountryWrap">
+        <button class="country-flag-btn" type="button" onclick="toggleCountryDropdown('su')" id="suCountryBtn">
+          <span id="suCountryFlag">🇰🇪</span>
+          <span class="country-code-label" id="suCountryCode">KE</span>
+          <span style="font-size:9px;color:var(--text3);">▼</span>
+        </button>
+        <div class="country-dropdown" id="suCountryDropdown">
+          <input class="country-search-inp" type="text" placeholder="Search country…" oninput="filterCountryOpts('su',this.value)">
+          <div id="suCountryList"></div>
+        </div>
+        <input class="phone-with-code" id="suPhone" type="tel" inputmode="numeric" placeholder="07XX XXX XXX">
+      </div>
     </div>
     <div class="field">
       <label>Password</label>
@@ -1284,7 +1372,7 @@ window.fbUpdateCalc = function() {
   const oe = document.getElementById('fbTotalOdds');
   const we = document.getElementById('fbPotWin');
   if (oe) oe.textContent = totOdds.toFixed(2);
-  if (we) we.textContent = 'KES ' + potWin.toFixed(2);
+  if (we) we.textContent = (window.fmtCurrencyExact ? window.fmtCurrencyExact(potWin) : 'KES ' + potWin.toFixed(2));
 };
 
 window.fbQuickStake = function(amt) {
@@ -1601,7 +1689,7 @@ function generateBetCode(){
 window.fbPlaceBet = async function() {
   if (!fbBetSlipItems.length) return;
   const stake = parseFloat(document.getElementById('fbBetStake').value) || 0;
-  if (stake < 10) { alert('Minimum stake is KES 10'); return; }
+  if (stake < 10) { alert('Minimum stake is ' + (window.fmtCurrencyExact ? window.fmtCurrencyExact(10) : 'KES 10')); return; }
   if (!currentUser) { closeFbBetslip(); openScreen('signupScreen'); return; }
   const pSnap = await getDoc(doc(db, 'users', currentUser.uid));
   const pData = pSnap.exists() ? pSnap.data() : {};
@@ -1833,15 +1921,26 @@ window.setCatActive = function(el, group) {
 //  LOGIN / SIGNUP
 // ════════════════════════════════════════════════════════════
 window.doLogin = async function() {
-  const phone = document.getElementById('liPhone').value.trim();
+  const rawPhone = document.getElementById('liPhone').value.trim();
   const pass  = document.getElementById('liPass').value;
   const err   = document.getElementById('loginErr');
   err.classList.remove('show');
-  if (!phone || !pass) { err.textContent='Please fill all fields'; err.classList.add('show'); return; }
+  if (!rawPhone || !pass) { err.textContent='Please fill all fields'; err.classList.add('show'); return; }
   const btn = document.getElementById('loginBtn');
   btn.disabled = true; btn.innerHTML = '<div class="spinner"></div>';
   try {
-    const email = phone.replace(/^0/,'+254') + '@betatHome.site';
+    // Build email: Kenya → replace leading 0 with +254, others → prepend dial code
+    const selectedCountry = window._liSelectedCountry || { code:'KE', dial:'' };
+    let normalised = rawPhone;
+    let email;
+    if (selectedCountry.code === 'KE') {
+      normalised = rawPhone.replace(/^0/, '+254');
+      email = normalised + '@betatHome.site';
+    } else {
+      // If user typed a leading 0 for local format, remove it
+      normalised = rawPhone.replace(/^0/, '');
+      email = selectedCountry.dial + normalised + '@betatHome.site';
+    }
     const cred  = await signInWithEmailAndPassword(auth, email, pass);
     // ── Check if account is suspended ──
     try {
@@ -1849,7 +1948,6 @@ window.doLogin = async function() {
       const _db   = getFirestore();
       const snap  = await getDoc(doc(_db, 'users', cred.user.uid));
       if (snap.exists() && snap.data().status === 'suspended') {
-        // Close login screen and show suspended modal
         openScreen(null);
         window.showSuspendedModal();
         btn.disabled = false; btn.textContent = 'LOG IN';
@@ -1866,22 +1964,33 @@ window.doLogin = async function() {
 
 window.doSignup = async function() {
   const name  = document.getElementById('suName').value.trim();
-  const phone = document.getElementById('suPhone').value.trim();
+  const rawPhone = document.getElementById('suPhone').value.trim();
   const pass  = document.getElementById('suPass').value;
   const pass2 = document.getElementById('suPass2').value;
   const err   = document.getElementById('signupErr');
   err.classList.remove('show');
-  if (!name || !phone || !pass) { err.textContent='Please fill all fields'; err.classList.add('show'); return; }
+  if (!name || !rawPhone || !pass) { err.textContent='Please fill all fields'; err.classList.add('show'); return; }
   if (pass !== pass2) { err.textContent='Passwords do not match'; err.classList.add('show'); return; }
   if (pass.length < 6) { err.textContent='Password must be at least 6 characters'; err.classList.add('show'); return; }
   const btn = document.getElementById('signupBtn');
   btn.disabled = true; btn.innerHTML = '<div class="spinner"></div>';
   try {
-    const email = phone.replace(/^0/,'+254') + '@betatHome.site';
+    const selectedCountry = window._suSelectedCountry || { code:'KE', dial:'' };
+    let normalised = rawPhone;
+    let email, phone;
+    if (selectedCountry.code === 'KE') {
+      normalised = rawPhone.replace(/^0/, '+254');
+      email = normalised + '@betatHome.site';
+      phone = normalised;
+    } else {
+      normalised = rawPhone.replace(/^0/, '');
+      phone = selectedCountry.dial + normalised;
+      email = phone + '@betatHome.site';
+    }
     const cred = await createUserWithEmailAndPassword(auth, email, pass);
     await setDoc(doc(db,'users',cred.user.uid), {
-      name, phone, email,
-      balance: 0, // welcome bonus
+      name, phone, email, country: selectedCountry.code,
+      balance: 0,
       createdAt: serverTimestamp(),
     });
     window.location.href = 'aviator.html';
@@ -1899,7 +2008,8 @@ window.doSignup = async function() {
 const QUICK_AMOUNTS = [50,100,200,500,1000,2000];
 window.openDepositModal = function() {
   const grid = document.getElementById('amountGrid');
-  grid.innerHTML = QUICK_AMOUNTS.map(a => `<div class="amount-pill${a===200?' active':''}" onclick="selectAmount(this,${a})">KES ${a}</div>`).join('');
+  const _fmt = window.fmtCurrencyExact || (x => 'KES ' + x);
+  grid.innerHTML = QUICK_AMOUNTS.map(a => `<div class="amount-pill${a===200?' active':''}" onclick="selectAmount(this,${a})">${_fmt(a)}</div>`).join('');
   document.getElementById('depositModal').classList.add('open');
 };
 window.closeDepositModal = function() { document.getElementById('depositModal').classList.remove('open'); };
@@ -2720,14 +2830,15 @@ window.updateStakeCalc = function() {
   const oe = document.getElementById('totalOddsDisplay');
   const we = document.getElementById('potentialWinDisplay');
   if (oe) oe.textContent = totOdds.toFixed(2);
-  if (we) we.textContent = 'KES ' + potWin.toFixed(2);
+  if (we) we.textContent = (window.fmtCurrencyExact ? window.fmtCurrencyExact(potWin) : 'KES ' + potWin.toFixed(2));
 };
 window.placeBet = function() {
   const stake = parseFloat(document.getElementById('betStakeInput').value) || 0;
-  if (stake < 10) { alert('Minimum stake is KES 10'); return; }
+  if (stake < 10) { alert('Minimum stake is ' + (window.fmtCurrencyExact ? window.fmtCurrencyExact(10) : 'KES 10')); return; }
   if (!currentUser) { window.closeBetslip(); openScreen('signupScreen'); return; }
   const total = betslip.reduce((s,b) => s * b.odd, 1).toFixed(2);
-  alert('\u2705 Bet placed!\n' + betslip.length + ' selections · Odds: ' + total + 'x · Stake: KES ' + stake);
+  const sym = window.fmtCurrencyExact ? window.fmtCurrencyExact(stake) : 'KES ' + stake;
+  alert('✅ Bet placed!\n' + betslip.length + ' selections · Odds: ' + total + 'x · Stake: ' + sym);
   betslip = [];
   document.getElementById('betslipCount').textContent = '0';
   document.getElementById('betslipFab').style.display = 'none';
@@ -2750,6 +2861,246 @@ startBigWinsListener();
 startFbGamesListener();
 // Show home on load
 document.getElementById('homePage').style.display = 'block';
+
+// ════════════════════════════════════════════════════════════
+//  COUNTRY SELECTOR
+// ════════════════════════════════════════════════════════════
+const COUNTRIES = [
+  { code:'KE', flag:'🇰🇪', name:'Kenya',            dial:''        },
+  { code:'ZW', flag:'🇿🇼', name:'Zimbabwe',         dial:'+263'    },
+  { code:'NA', flag:'🇳🇦', name:'Namibia',          dial:'+264'    },
+  { code:'ZA', flag:'🇿🇦', name:'South Africa',     dial:'+27'     },
+  { code:'NG', flag:'🇳🇬', name:'Nigeria',          dial:'+234'    },
+  { code:'GH', flag:'🇬🇭', name:'Ghana',            dial:'+233'    },
+  { code:'TZ', flag:'🇹🇿', name:'Tanzania',         dial:'+255'    },
+  { code:'UG', flag:'🇺🇬', name:'Uganda',           dial:'+256'    },
+  { code:'ZM', flag:'🇿🇲', name:'Zambia',           dial:'+260'    },
+  { code:'MW', flag:'🇲🇼', name:'Malawi',           dial:'+265'    },
+  { code:'ET', flag:'🇪🇹', name:'Ethiopia',         dial:'+251'    },
+  { code:'RW', flag:'🇷🇼', name:'Rwanda',           dial:'+250'    },
+  { code:'SD', flag:'🇸🇩', name:'Sudan',            dial:'+249'    },
+  { code:'SN', flag:'🇸🇳', name:'Senegal',          dial:'+221'    },
+  { code:'CI', flag:'🇨🇮', name:'Côte d\'Ivoire',  dial:'+225'    },
+  { code:'CM', flag:'🇨🇲', name:'Cameroon',         dial:'+237'    },
+  { code:'MZ', flag:'🇲🇿', name:'Mozambique',       dial:'+258'    },
+  { code:'BW', flag:'🇧🇼', name:'Botswana',         dial:'+267'    },
+  { code:'GB', flag:'🇬🇧', name:'United Kingdom',   dial:'+44'     },
+  { code:'US', flag:'🇺🇸', name:'United States',    dial:'+1'      },
+];
+
+window._liSelectedCountry = COUNTRIES[0];
+window._suSelectedCountry = COUNTRIES[0];
+
+function buildCountryList(prefix, filter='') {
+  const listEl = document.getElementById(prefix + 'CountryList');
+  if (!listEl) return;
+  const filtered = COUNTRIES.filter(c =>
+    c.name.toLowerCase().includes(filter.toLowerCase()) ||
+    c.dial.includes(filter) ||
+    c.code.toLowerCase().includes(filter.toLowerCase())
+  );
+  const sel = prefix === 'li' ? window._liSelectedCountry : window._suSelectedCountry;
+  listEl.innerHTML = filtered.map(c => `
+    <div class="country-opt${c.code===sel.code?' selected':''}" onclick="selectCountry('${prefix}','${c.code}')">
+      <span class="country-opt-flag">${c.flag}</span>
+      <span class="country-opt-name">${c.name}</span>
+      <span class="country-opt-code">${c.dial||'local'}</span>
+    </div>
+  `).join('');
+}
+
+window.toggleCountryDropdown = function(prefix) {
+  const dd = document.getElementById(prefix + 'CountryDropdown');
+  const isOpen = dd.classList.contains('open');
+  // Close all dropdowns first
+  document.querySelectorAll('.country-dropdown').forEach(d => d.classList.remove('open'));
+  if (!isOpen) {
+    buildCountryList(prefix);
+    dd.classList.add('open');
+    const si = dd.querySelector('.country-search-inp');
+    if (si) { si.value = ''; setTimeout(() => si.focus(), 50); }
+  }
+};
+
+window.filterCountryOpts = function(prefix, val) {
+  buildCountryList(prefix, val);
+};
+
+window.selectCountry = function(prefix, code) {
+  const c = COUNTRIES.find(x => x.code === code);
+  if (!c) return;
+  if (prefix === 'li') window._liSelectedCountry = c;
+  else window._suSelectedCountry = c;
+
+  document.getElementById(prefix + 'CountryFlag').textContent = c.flag;
+  document.getElementById(prefix + 'CountryCode').textContent = c.code;
+
+  const phoneInp = document.getElementById(prefix + 'Phone');
+  if (c.code === 'KE') {
+    phoneInp.placeholder = '07XX XXX XXX';
+  } else {
+    phoneInp.placeholder = c.dial + ' XXXX XXXX';
+  }
+
+  document.getElementById(prefix + 'CountryDropdown').classList.remove('open');
+};
+
+// Close dropdowns on outside click
+document.addEventListener('click', e => {
+  if (!e.target.closest('.country-select-wrap')) {
+    document.querySelectorAll('.country-dropdown').forEach(d => d.classList.remove('open'));
+  }
+});
+
+// ════════════════════════════════════════════════════════════
+//  CURRENCY SYSTEM
+// ════════════════════════════════════════════════════════════
+const CURRENCIES = [
+  { code:'KES', symbol:'KES', flag:'🇰🇪', name:'Kenyan Shilling' },
+  { code:'ZWL', symbol:'ZWL', flag:'🇿🇼', name:'Zimbabwe Dollar' },
+  { code:'NAD', symbol:'NAD', flag:'🇳🇦', name:'Namibian Dollar' },
+  { code:'ZAR', symbol:'R',   flag:'🇿🇦', name:'South African Rand' },
+  { code:'NGN', symbol:'₦',   flag:'🇳🇬', name:'Nigerian Naira' },
+  { code:'GHS', symbol:'GH₵', flag:'🇬🇭', name:'Ghanaian Cedi' },
+  { code:'TZS', symbol:'TZS', flag:'🇹🇿', name:'Tanzanian Shilling' },
+  { code:'UGX', symbol:'UGX', flag:'🇺🇬', name:'Ugandan Shilling' },
+  { code:'USD', symbol:'$',   flag:'🇺🇸', name:'US Dollar' },
+  { code:'GBP', symbol:'£',   flag:'🇬🇧', name:'British Pound' },
+];
+
+// Default rates vs USD (fallback; overridden by Firestore 'settings/currencyRates')
+let CURRENCY_RATES_VS_USD = {
+  KES:129, ZWL:322, NAD:18.7, ZAR:18.7, NGN:1600, GHS:15.2,
+  TZS:2650, UGX:3750, USD:1, GBP:0.79
+};
+
+let activeCurrency = CURRENCIES[0];
+
+// Load rates from Firestore
+(async () => {
+  try {
+    const snap = await getDoc(doc(db, 'settings', 'currencyRates'));
+    if (snap.exists()) {
+      const d = snap.data();
+      Object.assign(CURRENCY_RATES_VS_USD, d);
+    }
+  } catch(_) {}
+})();
+
+// Also listen for live rate updates
+onSnapshot(doc(db, 'settings', 'currencyRates'), snap => {
+  if (snap.exists()) {
+    Object.assign(CURRENCY_RATES_VS_USD, snap.data());
+    refreshAllCurrencyDisplay();
+  }
+});
+
+function buildCurrencySwitcher() {
+  const bar = document.getElementById('currencySwitcherBar');
+  if (!bar) return;
+  const label = bar.querySelector('span');
+  bar.innerHTML = '';
+  bar.appendChild(label);
+  CURRENCIES.forEach(c => {
+    const pill = document.createElement('div');
+    pill.className = 'currency-pill' + (c.code === activeCurrency.code ? ' active' : '');
+    pill.innerHTML = `${c.flag} ${c.code}`;
+    pill.onclick = () => switchCurrency(c.code);
+    bar.appendChild(pill);
+  });
+}
+
+window.switchCurrency = function(code) {
+  const c = CURRENCIES.find(x => x.code === code);
+  if (!c) return;
+  activeCurrency = c;
+  buildCurrencySwitcher();
+  refreshAllCurrencyDisplay();
+};
+
+// Convert from KES (base) to active currency
+window.convertFromKES = function(kesAmount) {
+  const kesPerUsd  = CURRENCY_RATES_VS_USD['KES']  || 129;
+  const targPerUsd = CURRENCY_RATES_VS_USD[activeCurrency.code] || 1;
+  return (kesAmount / kesPerUsd) * targPerUsd;
+};
+
+window.fmtCurrency = function(kesAmount) {
+  const v = convertFromKES(kesAmount);
+  const sym = activeCurrency.symbol;
+  if (v >= 1000000) return sym + (v/1000000).toFixed(2) + 'M';
+  if (v >= 1000)    return sym + (v/1000).toFixed(1) + 'K';
+  return sym + v.toFixed(2);
+};
+
+window.fmtCurrencyExact = function(kesAmount) {
+  const v = convertFromKES(kesAmount);
+  return activeCurrency.symbol + v.toFixed(2);
+};
+
+function refreshAllCurrencyDisplay() {
+  const sym = activeCurrency.symbol;
+
+  // Header currency label
+  const lbl = document.getElementById('hdrCurrLabel');
+  if (lbl) lbl.textContent = sym;
+
+  // Header balance
+  const hdrBal = document.getElementById('hdrBalance');
+  if (hdrBal && userBalance !== undefined) {
+    hdrBal.textContent = convertFromKES(userBalance).toFixed(2);
+  }
+
+  // Account balance
+  const accBal = document.getElementById('accountBalanceVal');
+  if (accBal && userBalance !== undefined) {
+    accBal.textContent = convertFromKES(userBalance).toFixed(2);
+  }
+
+  // Account balance val prefix text (the "KES " text node before the span)
+  const accValEl = document.querySelector('.account-balance-val');
+  if (accValEl) {
+    for (const n of accValEl.childNodes) {
+      if (n.nodeType === 3) { n.textContent = sym + ' '; break; }
+    }
+  }
+
+  // Betslip quick-stake button labels
+  const qsMap = { fbQS50:50, fbQS100:100, fbQS200:200, fbQS500:500,
+                  bsQS50:50, bsQS100:100, bsQS200:200, bsQS500:500 };
+  Object.entries(qsMap).forEach(([id, kes]) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = fmtCurrencyExact(kes);
+  });
+
+  // Betslip stake placeholders
+  const fbStake = document.getElementById('fbBetStake');
+  if (fbStake) fbStake.placeholder = `Enter stake (${sym})`;
+  const bsStake = document.getElementById('betStakeInput');
+  if (bsStake) bsStake.placeholder = `Enter stake (${sym})`;
+
+  // Recalc potential wins
+  if (typeof fbUpdateCalc === 'function') fbUpdateCalc();
+  if (typeof updateStakeCalc === 'function') updateStakeCalc();
+
+  // Deposit modal pills — regenerate
+  if (typeof openDepositModal !== 'undefined') {
+    const grid = document.getElementById('amountGrid');
+    if (grid && grid.children.length) {
+      // re-render with converted labels
+      const QUICK_AMOUNTS_KES = [50, 100, 200, 500, 1000, 2000];
+      grid.innerHTML = QUICK_AMOUNTS_KES.map(a =>
+        `<div class="amount-pill" onclick="selectAmount(this,${a})">${fmtCurrencyExact(a)}</div>`
+      ).join('');
+    }
+  }
+
+  // Currency switcher pills
+  buildCurrencySwitcher();
+}
+
+buildCurrencySwitcher();
+
 </script>
 
 <!-- ══════════════════════════════════════════════════════

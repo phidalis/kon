@@ -1163,6 +1163,9 @@
       <div class="nav-item" onclick="switchPage('store')">
         <span class="nav-icon">⚙️</span> Store Settings
       </div>
+      <div class="nav-item" onclick="switchPage('currency')">
+        <span class="nav-icon">💱</span> Currency Rates
+      </div>
       <div class="nav-section-label">System</div>
       <div class="nav-item" onclick="switchPage('status')">
         <span class="nav-icon">🔌</span> Connection
@@ -1563,8 +1566,31 @@
 
     </div><!-- end page-store -->
 
+    <!-- ── CURRENCY RATES PAGE ── -->
+    <div class="page-content" id="page-currency">
+      <div style="margin-bottom:20px;">
+        <div style="font-size:18px;font-weight:800;">💱 Currency Exchange Rates</div>
+        <div style="font-size:12px;color:var(--text-dim);margin-top:3px;">Set conversion rates against USD. Players will see balances in their selected currency.</div>
+      </div>
 
-    <!-- ── CATEGORIES PAGE ── -->
+      <!-- Priority currencies -->
+      <div class="section-title" style="display:flex;align-items:center;gap:8px;color:#f59e0b;">⭐ Priority Currencies</div>
+      <div id="currencyPriorityCards" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;"></div>
+
+      <!-- All currencies -->
+      <div class="section-title">All Currencies vs USD</div>
+      <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:14px;overflow:hidden;margin-bottom:20px;">
+        <div style="display:grid;grid-template-columns:auto 1fr auto;align-items:center;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.06);font-size:11px;font-weight:800;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.5px;">
+          <span>Currency</span><span style="padding-left:12px;">Rate (1 USD =)</span><span>Action</span>
+        </div>
+        <div id="currencyRatesList"></div>
+      </div>
+
+      <button class="save-btn" onclick="saveAllCurrencyRates()" id="saveCurrencyBtn" style="width:100%;">
+        💾 Save All Rates to Firestore
+      </button>
+      <div id="currencySaveMsg" style="margin-top:10px;font-size:12px;text-align:center;display:none;"></div>
+    </div><!-- end page-currency -->
     <div class="page-content" id="page-categories">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
         <div>
@@ -2445,6 +2471,124 @@ window.saveTxEdit = async function() {
 };
 
 // ── Store Settings ─────────────────────────────────────────
+// ════════════════════════════════════════════════════════════
+//  CURRENCY RATES MANAGER
+// ════════════════════════════════════════════════════════════
+const CURRENCY_LIST = [
+  { code:'ZWL', symbol:'ZWL', flag:'🇿🇼', name:'Zimbabwe Dollar',       priority:true  },
+  { code:'NAD', symbol:'NAD', flag:'🇳🇦', name:'Namibian Dollar',        priority:true  },
+  { code:'KES', symbol:'KES', flag:'🇰🇪', name:'Kenyan Shilling',        priority:false },
+  { code:'ZAR', symbol:'R',   flag:'🇿🇦', name:'South African Rand',     priority:false },
+  { code:'NGN', symbol:'₦',   flag:'🇳🇬', name:'Nigerian Naira',         priority:false },
+  { code:'GHS', symbol:'GH₵', flag:'🇬🇭', name:'Ghanaian Cedi',          priority:false },
+  { code:'TZS', symbol:'TZS', flag:'🇹🇿', name:'Tanzanian Shilling',     priority:false },
+  { code:'UGX', symbol:'UGX', flag:'🇺🇬', name:'Ugandan Shilling',       priority:false },
+  { code:'USD', symbol:'$',   flag:'🇺🇸', name:'US Dollar',              priority:false },
+  { code:'GBP', symbol:'£',   flag:'🇬🇧', name:'British Pound',          priority:false },
+];
+
+// Working copy of rates (1 USD = X local)
+let currencyRates = {
+  KES:129, ZWL:322, NAD:18.7, ZAR:18.7, NGN:1600,
+  GHS:15.2, TZS:2650, UGX:3750, USD:1, GBP:0.79
+};
+
+let currencyPageLoaded = false;
+
+async function loadCurrencyRatesPage() {
+  if (!currencyPageLoaded) {
+    // Try to fetch saved rates from Firestore
+    try {
+      const snap = await getDoc(doc(db, 'settings', 'currencyRates'));
+      if (snap.exists()) Object.assign(currencyRates, snap.data());
+    } catch(_) {}
+    currencyPageLoaded = true;
+  }
+  renderCurrencyRatesPage();
+}
+
+function renderCurrencyRatesPage() {
+  // Priority cards (Zimbabwe + Namibia)
+  const priorityEl = document.getElementById('currencyPriorityCards');
+  if (priorityEl) {
+    priorityEl.innerHTML = CURRENCY_LIST.filter(c => c.priority).map(c => `
+      <div style="background:linear-gradient(135deg,rgba(245,158,11,0.1),rgba(245,158,11,0.05));border:1.5px solid rgba(245,158,11,0.35);border-radius:14px;padding:16px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+          <span style="font-size:24px;">${c.flag}</span>
+          <div>
+            <div style="font-weight:900;font-size:15px;">${c.code}</div>
+            <div style="font-size:11px;color:var(--text-dim);">${c.name}</div>
+          </div>
+        </div>
+        <label style="font-size:10px;font-weight:800;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:6px;">1 USD =</label>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <input type="number" id="rate_${c.code}" value="${currencyRates[c.code] || 1}"
+            step="0.01" min="0.001"
+            style="flex:1;padding:10px 12px;background:rgba(255,255,255,0.08);border:1.5px solid rgba(245,158,11,0.4);border-radius:10px;color:white;font-size:15px;font-weight:800;outline:none;width:0;"
+            oninput="currencyRates['${c.code}']=parseFloat(this.value)||0">
+          <span style="font-size:13px;font-weight:700;color:rgba(255,255,255,0.5);">${c.symbol}</span>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // Full list
+  const listEl = document.getElementById('currencyRatesList');
+  if (listEl) {
+    listEl.innerHTML = CURRENCY_LIST.map((c, i) => `
+      <div style="display:grid;grid-template-columns:auto 1fr auto;align-items:center;padding:12px 14px;${i < CURRENCY_LIST.length-1 ? 'border-bottom:1px solid rgba(255,255,255,0.05);' : ''}">
+        <div style="display:flex;align-items:center;gap:8px;min-width:120px;">
+          <span style="font-size:18px;">${c.flag}</span>
+          <div>
+            <div style="font-weight:800;font-size:13px;">${c.code}</div>
+            <div style="font-size:10px;color:var(--text-dim);">${c.name}</div>
+          </div>
+        </div>
+        <div style="padding:0 10px;">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span style="font-size:11px;color:var(--text-dim);white-space:nowrap;">1 USD =</span>
+            <input type="number" id="rate_${c.code}" value="${currencyRates[c.code] || 1}"
+              step="0.01" min="0.001"
+              style="flex:1;padding:8px 10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:white;font-size:13px;font-weight:700;outline:none;width:0;min-width:70px;"
+              oninput="currencyRates['${c.code}']=parseFloat(this.value)||0">
+            <span style="font-size:12px;color:var(--text-dim);">${c.symbol}</span>
+          </div>
+        </div>
+        <div style="font-size:11px;color:var(--text-dim);text-align:right;padding-left:8px;">
+          ${c.code === 'USD' ? '<span style="color:#22c55e;font-weight:800;">Base</span>' : ''}
+        </div>
+      </div>
+    `).join('');
+  }
+}
+
+window.saveAllCurrencyRates = async function() {
+  const btn = document.getElementById('saveCurrencyBtn');
+  const msg = document.getElementById('currencySaveMsg');
+  btn.disabled = true;
+  btn.textContent = '⏳ Saving…';
+
+  // Read all input values fresh
+  CURRENCY_LIST.forEach(c => {
+    const inp = document.getElementById('rate_' + c.code);
+    if (inp) currencyRates[c.code] = parseFloat(inp.value) || currencyRates[c.code];
+  });
+
+  try {
+    await setDoc(doc(db, 'settings', 'currencyRates'), { ...currencyRates }, { merge: true });
+    msg.style.display = 'block';
+    msg.style.color = '#22c55e';
+    msg.textContent = '✅ Rates saved successfully! Players will see updated values instantly.';
+    setTimeout(() => { msg.style.display = 'none'; }, 4000);
+  } catch(e) {
+    msg.style.display = 'block';
+    msg.style.color = '#ef4444';
+    msg.textContent = '❌ Failed to save: ' + e.message;
+  }
+  btn.disabled = false;
+  btn.textContent = '💾 Save All Rates to Firestore';
+};
+
 let storeLoaded = false;
 
 async function loadStoreSettings() {
@@ -2631,7 +2775,7 @@ window.switchPage = function(id) {
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
   const pg = document.getElementById('page-' + id);
   if (pg) pg.classList.add('active');
-  const titles = { dashboard:'Dashboard', crash:'Crash Points', live:'Live Link', players:'Players', transactions:'Transactions', store:'Store Settings', status:'Connection Status', football:'Football Games', betslips:'Bet Slips', categories:'Game Categories' };
+  const titles = { dashboard:'Dashboard', crash:'Crash Points', live:'Live Link', players:'Players', transactions:'Transactions', store:'Store Settings', status:'Connection Status', football:'Football Games', betslips:'Bet Slips', categories:'Game Categories', currency:'Currency Rates' };
   document.getElementById('topbarTitle').textContent = titles[id] || id;
   // Find matching nav item
   document.querySelectorAll('.nav-item').forEach(el => {
@@ -2641,6 +2785,7 @@ window.switchPage = function(id) {
   // Lazy load on first visit
   if (id === 'transactions' && !allTx.length && allPlayers.length) generateMockTx();
   if (id === 'store' && !storeLoaded) loadStoreSettings();
+  if (id === 'currency') loadCurrencyRatesPage();
   // Set today's date in create game modal when football page opens
   if (id === 'football') {
     const dateEl = document.getElementById('cgDate');
