@@ -798,7 +798,7 @@ function avFmtCurrency(kesAmount){
 
 function avFmtExact(kesAmount){
   const v = avConvertFromKES(kesAmount);
-  return avActiveCurrency.symbol + v.toFixed(2);
+  return avActiveCurrency.symbol + v.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
 }
 
 window.avSwitchCurrency = function(code){
@@ -860,7 +860,7 @@ function avRefreshCurrencyDisplay(){
 
   // Withdraw panel
   const wdBal = document.getElementById('wdBalDisplay');
-  if(wdBal) wdBal.textContent = avConvertFromKES(balance).toFixed(2);
+  if(wdBal) wdBal.textContent = avConvertFromKES(balance).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
   const minWd = document.getElementById('minWdInlineNote');
   if(minWd) minWd.textContent = avFmtExact(storeConfig.minWithdrawal||200);
 
@@ -2336,7 +2336,7 @@ window.closeWdPopup=closeWdPopup;
 function updateBalDisplay(){
   const sym = typeof avActiveCurrency !== 'undefined' ? avActiveCurrency.symbol : 'KES';
   const converted = typeof avConvertFromKES !== 'undefined' ? avConvertFromKES(balance) : balance;
-  const fmt = converted.toFixed(2);
+  const fmt = converted.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
   const fmtKES = balance.toLocaleString(); // raw KES for withdraw/wallet fields that need real KES
   const el = document.getElementById('balDisplay'); if(el) el.textContent = fmt;
   const pb = document.getElementById('profileBal'); if(pb) pb.textContent = fmt;
