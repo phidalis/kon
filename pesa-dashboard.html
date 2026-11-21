@@ -2193,13 +2193,24 @@ window.goToPage_players = function(p) {
 };
 
 window.filterPlayers = function() {
-  const q = document.getElementById('playerSearch').value.toLowerCase().trim();
-  filteredPlayers = q ? allPlayers.filter(p =>
-    (p.email||'').toLowerCase().includes(q) ||
-    (p.phone||'').includes(q) ||
-    p.id.toLowerCase().includes(q) ||
-    formatPhone(p.phone).includes(q)
-  ) : allPlayers;
+  const raw = document.getElementById('playerSearch').value.trim();
+  const norm = s => String(s || '').toLowerCase().replace(/\s+/g, '');
+  const digits = s => {
+    let d = String(s || '').replace(/\D/g, '');
+    if (d.startsWith('0') && d.length === 10) d = '254' + d.slice(1);
+    return d;
+  };
+  const q = norm(raw);
+  const qDigits = digits(raw);
+  filteredPlayers = !q ? allPlayers : allPlayers.filter(p => {
+    const fields = [
+      p.name, p.email, p.id,
+      formatEmail(p.email, p.phone, p.id),
+      formatPhone(p.phone), p.phone
+    ].map(norm);
+    if (fields.some(f => f.includes(q))) return true;
+    return qDigits.length >= 4 && digits(p.phone).includes(qDigits);
+  });
   currentPage = 1; renderPlayers();
 };
 
